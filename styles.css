@@ -1,36 +1,126 @@
 /* =========================
    BASE GLOBAL
 ========================= */
+:root {
+  --bg-page: #f4f6f8;
+  --bg-page-soft: #eef1f4;
+  --bg-card: #ffffff;
+  --bg-soft: #f8fafc;
+  --bg-soft-2: #f9fafb;
+  --border: #e5e7eb;
+  --border-soft: #dbe3ec;
+  --border-dashed: #cbd5e1;
+  --text: #1f2937;
+  --text-soft: #6b7280;
+  --text-strong: #111827;
+  --primary: #2563eb;
+  --primary-soft: #eef5ff;
+  --primary-border: #bfdbfe;
+  --danger: #dc2626;
+  --success: #16a34a;
+  --shadow-sm: 0 8px 24px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 12px 32px rgba(0, 0, 0, 0.08);
+  --radius-sm: 10px;
+  --radius-md: 12px;
+  --radius-lg: 14px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
 body {
   font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  background: linear-gradient(180deg, #f4f6f8 0%, #eef1f4 100%);
-  color: #1f2937;
+  background: linear-gradient(180deg, var(--bg-page) 0%, var(--bg-page-soft) 100%);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+h2,
+h3,
+h4 {
+  color: var(--text-strong);
+}
+
+label {
+  font-weight: 500;
+}
+
+textarea {
+  resize: vertical;
 }
 
 /* =========================
    CONTAINER
 ========================= */
 .container {
-  max-width: 980px;
-}
-.quote-selected {
-  border: 2px solid #007bff !important;
-  background: #eef5ff;
+  max-width: 1100px;
 }
 
 /* =========================
-   CARD (BOOSTRAP OVERRIDE)
+   CARD (BOOTSTRAP OVERRIDE)
 ========================= */
 .card {
   border: none;
-  border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
   transition: transform 0.15s ease, box-shadow 0.15s ease;
+  background: var(--bg-card);
 }
 
 .card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-md);
+}
+
+/* =========================
+   FORM CONTROLS
+========================= */
+.form-control,
+.form-select {
+  border-radius: 10px;
+  border: 1px solid var(--border-soft);
+  min-height: 40px;
+}
+
+.form-control-sm,
+.form-select-sm {
+  min-height: 34px;
+  border-radius: 8px;
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--primary-border);
+  box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.12);
+}
+
+textarea.form-control {
+  min-height: 88px;
+}
+
+input[readonly],
+textarea[readonly] {
+  background: #f3f4f6;
+}
+
+/* =========================
+   BUTTONS
+========================= */
+.btn {
+  border-radius: 10px;
+  font-weight: 500;
+}
+
+.btn-sm {
+  border-radius: 8px;
+}
+
+.btn-outline-primary:hover,
+.btn-outline-secondary:hover,
+.btn-outline-success:hover,
+.btn-outline-danger:hover {
+  transform: translateY(-1px);
 }
 
 /* =========================
@@ -44,114 +134,67 @@ body {
 }
 
 .section-header h2,
-.section-header h3 {
-  font-size: 1.1rem;
-  font-weight: 600;
+.section-header h3,
+.section-header h4 {
+  font-size: 1.08rem;
+  font-weight: 700;
   margin: 0;
 }
 
-/* =========================
-   SECTION BODY
-========================= */
 .section-body {
   margin-top: 1rem;
 }
 
 /* =========================
-   SERVICE CARD
+   BREADCRUMB / TOP BAR
 ========================= */
-.service-card {
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  padding: 1rem;
-  margin-top: 1rem;
-  background: #ffffff;
-}
-
-.service-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
+[data-breadcrumb] {
+  font-size: 0.88rem;
+  color: var(--text-soft);
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  padding: 0.45rem 0.75rem;
+  border-radius: 999px;
+  white-space: nowrap;
 }
 
 /* =========================
-   CATEGORY
+   MAIN NAV
 ========================= */
-.category {
-  border: 1px dashed #cbd5e1;
-  border-radius: 10px;
-  padding: 0.75rem;
-  margin-top: 1rem;
-  background: #f9fafb;
-}
-
-.category-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-weight: 500;
-}
-
-.category-body {
-  margin-top: 0.75rem;
-}
-
-/* =========================
-   TOGGLES / ACTIONS
-========================= */
-.toggle {
-  cursor: pointer;
-  user-select: none;
-  color: #2563eb;
-}
-
-.toggle:hover {
-  text-decoration: underline;
-}
-
-/* =========================
-   UTILS
-========================= */
-.hidden {
-  display: none;
-}
-
-.small {
-  font-size: 0.85rem;
-  color: #6b7280;
-}
-
-/* =========================
-   TOTALS
-========================= */
-.totals {
-  margin-top: 1.5rem;
-  border-top: 1px solid #e5e7eb;
-  padding-top: 1rem;
-}
-
-.total-line {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 0.4rem;
-  color: #374151;
-}
-
-.total-final {
-  font-size: 1.15rem;
-  font-weight: 600;
-  color: #111827;
+[data-main-tab].active {
+  background-color: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
 }
 
 /* =========================
    CLIENTE
 ========================= */
+.client-card,
+.client-section,
+.client-panel > .card,
+.travel-panel,
+.quote-panel > .card,
+.pdf-item,
+.pdf-section {
+  background: var(--bg-card);
+}
+
 .client-card {
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
   padding: 1rem;
-  background: #ffffff;
+}
+
+.client-section {
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  padding: 1rem;
+  background: var(--bg-soft-2);
+}
+
+.client-panel {
+  min-height: 120px;
 }
 
 /* =========================
@@ -160,22 +203,54 @@ body {
 .client-nav {
   display: flex;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
-.client-nav .btn.active {
-  background-color: #2563eb;
+.client-nav .btn.active,
+.client-nav .btn.btn-secondary {
+  background-color: var(--primary);
   color: #fff;
-  border-color: #2563eb;
+  border-color: var(--primary);
 }
 
 /* =========================
-   CLIENT SECTIONS
+   DOCS LIST
 ========================= */
-.client-section {
-  border: 1px dashed #e5e7eb;
+.docs-list .border,
+.docs-list .rounded {
+  border-color: var(--border) !important;
+}
+
+.docs-list > div {
+  background: #fff;
   border-radius: 10px;
-  padding: 1rem;
-  background: #f9fafb;
+}
+
+/* =========================
+   TRAVEL TABS / VIAJES ASOCIADOS
+========================= */
+.travel-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.travel-tab {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.55rem 0.65rem;
+  background: #fff;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.travel-tab:hover {
+  border-color: var(--primary-border);
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.08);
+}
+
+.travel-tab.active {
+  border-color: var(--primary);
+  background: var(--primary-soft);
 }
 
 /* =========================
@@ -187,10 +262,41 @@ body {
   flex-wrap: wrap;
 }
 
-.travel-nav .btn.active {
-  background-color: #2563eb;
+.travel-nav .btn.active,
+.travel-nav .btn.btn-primary {
+  background-color: var(--primary);
   color: #fff;
-  border-color: #2563eb;
+  border-color: var(--primary);
+}
+
+/* =========================
+   TRAVEL PANEL / SECTION
+========================= */
+.travel-panel {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 1rem;
+  background: #fff;
+}
+
+[data-section] {
+  border-radius: var(--radius-md);
+}
+
+/* =========================
+   QUOTE NAV
+========================= */
+.quote-nav {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.quote-nav .btn.active,
+.quote-nav .btn.btn-secondary {
+  background-color: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
 }
 
 /* =========================
@@ -198,7 +304,323 @@ body {
 ========================= */
 .budget-block {
   padding: 1rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  background: #f9fafb;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-soft-2);
+}
+
+/* =========================
+   QUOTES LIST
+========================= */
+#quotes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.quote-item {
+  background: #fff;
+  border: 1px solid var(--border) !important;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.quote-item:hover {
+  border-color: var(--primary-border) !important;
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.08);
+}
+
+.quote-selected {
+  border: 2px solid #007bff !important;
+  background: var(--primary-soft);
+}
+
+/* =========================
+   CATEGORY / SERVICES
+========================= */
+.category {
+  border: 1px dashed var(--border-dashed);
+  border-radius: var(--radius-sm);
+  padding: 0.9rem;
+  margin-top: 1rem;
+  background: var(--bg-soft-2);
+}
+
+.category-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-weight: 600;
+  flex-wrap: wrap;
+}
+
+.category-body {
+  margin-top: 0.75rem;
+}
+
+.services-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* =========================
+   SERVICE CARD
+========================= */
+.service-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 1rem;
+  background: #ffffff;
+  margin-top: 0;
+  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.04);
+}
+
+.service-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.service-specific {
+  border-top: 1px dashed var(--border);
+  padding-top: 0.85rem;
+  margin-top: 0.5rem;
+}
+
+.service-empty-state {
+  background: #fff;
+  border: 1px dashed var(--border-dashed) !important;
+  border-radius: 12px;
+}
+
+/* =========================
+   TOTALS
+========================= */
+.totals {
+  margin-top: 1.5rem;
+  border-top: 1px solid var(--border);
+  padding-top: 1rem;
+  background: #fff;
+  border-radius: 12px;
+}
+
+.total-line {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.45rem;
+  color: #374151;
+  gap: 12px;
+}
+
+.total-line span {
+  color: var(--text-soft);
+}
+
+.total-line strong {
+  color: var(--text-strong);
+}
+
+.total-final {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-strong);
+}
+
+/* =========================
+   PDF MANAGEMENT
+========================= */
+[data-pdf-management] {
+  border-top: 1px solid var(--border);
+  padding-top: 1rem;
+}
+
+[data-pdf-runtime-list] {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pdf-item {
+  background: #fff;
+  border: 1px solid var(--border) !important;
+  border-radius: 12px;
+}
+
+.pdf-sections-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pdf-section {
+  background: #fff;
+  border: 1px solid var(--border) !important;
+  border-radius: 12px;
+}
+
+[data-pdf-builder] {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+}
+
+/* =========================
+   VOUCHERS / ITINERARIO / OPERADORES
+========================= */
+.voucher-item,
+[data-section="operadores"] .section-body,
+[data-section="itinerario"] .row {
+  border-radius: 12px;
+}
+
+.voucher-item {
+  background: #fff;
+  border-color: var(--border) !important;
+}
+
+/* =========================
+   EMPTY STATE GENERIC
+========================= */
+.empty-state,
+.border.rounded.p-3.text-muted.small {
+  background: #fff;
+  border: 1px dashed var(--border-dashed) !important;
+  border-radius: 12px;
+}
+
+/* =========================
+   HELPERS / UTILS
+========================= */
+.hidden {
+  display: none !important;
+}
+
+.small {
+  font-size: 0.85rem;
+  color: var(--text-soft);
+}
+
+.text-muted {
+  color: var(--text-soft) !important;
+}
+
+.d-none {
+  display: none !important;
+}
+
+/* =========================
+   SCROLL / LONG BLOCKS
+========================= */
+#quotes-list,
+.docs-list,
+.pdf-sections-list,
+[data-pdf-runtime-list] {
+  max-width: 100%;
+}
+
+[data-pdf-sections-list] textarea {
+  background: #f8fafc;
+}
+
+/* =========================
+   LOGIN
+========================= */
+#login-screen .card {
+  border-radius: 16px;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
+}
+
+/* =========================
+   RESPONSIVE
+========================= */
+@media (max-width: 991.98px) {
+  .container {
+    max-width: 96%;
+  }
+
+  [data-breadcrumb] {
+    width: 100%;
+    white-space: normal;
+    border-radius: 12px;
+  }
+
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .travel-tab {
+    width: 100%;
+  }
+
+  .quote-item .d-flex,
+  .pdf-item.d-flex,
+  .voucher-item .row {
+    width: 100%;
+  }
+}
+
+@media (max-width: 767.98px) {
+  body {
+    font-size: 14px;
+  }
+
+  .card {
+    border-radius: 10px;
+  }
+
+  .client-nav,
+  .travel-nav,
+  .quote-nav,
+  .travel-tabs {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .client-nav .btn,
+  .travel-nav .btn,
+  .quote-nav .btn {
+    width: 100%;
+  }
+
+  .section-header h2,
+  .section-header h3,
+  .section-header h4 {
+    font-size: 1rem;
+  }
+
+  .total-line {
+    font-size: 0.95rem;
+  }
+
+  .pdf-item,
+  .quote-item,
+  .service-card,
+  .client-card,
+  .client-section,
+  .budget-block,
+  .travel-panel {
+    padding: 0.85rem;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .container {
+    max-width: 100%;
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .btn-sm {
+    font-size: 0.8rem;
+  }
+
+  .form-control,
+  .form-select {
+    min-height: 38px;
+  }
+
+  .total-final {
+    font-size: 1rem;
+  }
 }

@@ -5,68 +5,88 @@ import {
   getTravelById
 } from "./api.js";
 
-import { appState, setActiveTravelId } from "./state.js";
+import {
+  appState,
+  setActiveTravelId,
+  setSelectedTravelName,
+  setView
+} from "./state.js";
 
 /************************************************
-LOAD TRAVELS
+INIT
 *************************************************/
-export async function loadTravels() {
-
-  if (!appState.activeClientId) return;
-
-  const container = document.querySelector("[data-travel-tabs]");
-  if (!container) return;
-
-  container.innerHTML = "";
-
-  let travels = [];
-
-  try {
-    travels = await getTravelsByClient(appState.activeClientId);
-  } catch (err) {
-    console.error(err);
-  }
-
-  /* ===== SIN VIAJES ===== */
-  if (!travels.length) {
-
-    setActiveTravelId(null);
-
-    renderEmptyTravelTab();
-    populateTravelSwitcher([]);
-
-    document.dispatchEvent(new Event("travel-cleared"));
-    return;
-  }
-
-  /* ===== VALIDAR ACTIVE ===== */
-  const exists = travels.some(
-    t => Number(t.id) === Number(appState.activeTravelId)
-  );
-
-  if (!exists) {
-    setActiveTravelId(travels[0].id);
-  }
-
-  /* ===== RENDER ===== */
-  travels.forEach(renderTravelTab);
-
-  populateTravelSwitcher(travels);
-
-  document.dispatchEvent(new Event("travel-selected"));
-}
+document.addEventListener("DOMContentLoaded", () => {
+  syncTravelContextUI();
+});
 
 /************************************************
 EVENT REFRESH
 *************************************************/
 document.addEventListener("travel-saved", loadTravels);
 document.addEventListener("client-selected", loadTravels);
+document.addEventListener("travel-cleared", syncTravelContextUI);
+document.addEventListener("travel-selected", syncTravelContextUI);
+
+/************************************************
+LOAD TRAVELS
+*************************************************/
+export async function loadTravels() {
+  const tabsContainer = document.querySelector("[data-travel-tabs]");
+  const switcher = document.querySelector("[data-travel-switcher]");
+
+  if (tabsContainer) tabsContainer.innerHTML = "";
+  if (switcher) switcher.innerHTML = "";
+
+  if (!appState.activeClientId) {
+    setActiveTravelId(null);
+    setSelectedTravelName("");
+    syncTravelContextUI();
+    document.dispatchEvent(new Event("travel-cleared"));
+    return;
+  }
+
+  let travels = [];
+
+  try {
+    travels = await getTravelsByClient(appState.activeClientId);
+  } catch (err) {
+    console.error("Error cargando viajes:", err);
+  }
+
+  if (!travels.length) {
+    setActiveTravelId(null);
+    setSelectedTravelName("");
+    renderEmptyTravelTab();
+    populateTravelSwitcher([]);
+    syncTravelContextUI();
+    document.dispatchEvent(new Event("travel-cleared"));
+    return;
+  }
+
+  const activeExists = travels.some(
+    t => Number(t.id) === Number(appState.activeTravelId)
+  );
+
+  if (!activeExists) {
+    setActiveTravelId(travels[0].id);
+  }
+
+  const activeTravel =
+    travels.find(t => Number(t.id) === Number(appState.activeTravelId)) || travels[0];
+
+  setSelectedTravelName(activeTravel?.destino || `Viaje ${activeTravel?.id || ""}`);
+
+  travels.forEach(renderTravelTab);
+  populateTravelSwitcher(travels);
+  syncTravelContextUI();
+
+  document.dispatchEvent(new Event("travel-selected"));
+}
 
 /************************************************
 TRAVEL SWITCHER
 *************************************************/
 function populateTravelSwitcher(travels) {
-
   const select = document.querySelector("[data-travel-switcher]");
   if (!select) return;
 
@@ -74,19 +94,18 @@ function populateTravelSwitcher(travels) {
 
   if (!travels.length) {
     const opt = document.createElement("option");
+    opt.value = "";
     opt.textContent = "Sin viajes";
     select.appendChild(opt);
     return;
   }
 
-  travels.forEach(t => {
-
+  travels.forEach(travel => {
     const opt = document.createElement("option");
+    opt.value = travel.id;
+    opt.textContent = travel.destino || `Viaje ${travel.id}`;
 
-    opt.value = t.id;
-    opt.textContent = t.destino || `Viaje ${t.id}`;
-
-    if (Number(t.id) === Number(appState.activeTravelId)) {
+    if (Number(travel.id) === Number(appState.activeTravelId)) {
       opt.selected = true;
     }
 
@@ -95,28 +114,13 @@ function populateTravelSwitcher(travels) {
 }
 
 /************************************************
-CAMBIO DESDE SELECT
-*************************************************/
-document.addEventListener("change", e => {
-
-  const select = e.target.closest("[data-travel-switcher]");
-  if (!select) return;
-
-  setActiveTravelId(Number(select.value));
-
-  document.dispatchEvent(new Event("travel-selected"));
-});
-
-/************************************************
-RENDER TAB
+RENDER TABS
 *************************************************/
 function renderTravelTab(travel) {
-
   const container = document.querySelector("[data-travel-tabs]");
   if (!container) return;
 
   const div = document.createElement("div");
-
   div.className = "travel-tab";
   div.dataset.travelId = travel.id;
 
@@ -125,145 +129,262 @@ function renderTravelTab(travel) {
   }
 
   div.innerHTML = `
-    <input
-      type="text"
-      class="form-control form-control-sm d-inline-block w-auto"
-      value="${travel.destino || "Viaje"}"
-      data-travel-title
-    >
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+      <button
+        type="button"
+        class="btn btn-sm ${Number(travel.id) === Number(appState.activeTravelId) ? "btn-primary" : "btn-outline-primary"}"
+        data-open-travel
+      >
+        ${travel.destino || `Viaje ${travel.id}`}
+      </button>
 
-    <button class="btn btn-sm btn-outline-secondary" data-duplicate-travel>⧉</button>
-    <button class="btn btn-sm btn-outline-success" data-add-travel>AGREGAR +</button>
-    <button class="btn btn-sm btn-outline-danger" data-delete-travel>✕</button>
+      <button
+        type="button"
+        class="btn btn-sm btn-outline-secondary"
+        data-duplicate-travel
+        title="Duplicar viaje"
+      >
+        ⧉
+      </button>
+
+      <button
+        type="button"
+        class="btn btn-sm btn-outline-danger"
+        data-delete-travel
+        title="Eliminar viaje"
+      >
+        ✕
+      </button>
+    </div>
   `;
 
   container.appendChild(div);
 }
 
 /************************************************
-CLICK HANDLER GLOBAL
-*************************************************/
-document.addEventListener("click", async e => {
-
-  if (!appState.activeClientId) return;
-
-  const tab = e.target.closest(".travel-tab");
-  const travelId = Number(tab?.dataset.travelId);
-
-  /* SELECT TAB */
-  if (tab && !e.target.closest("button")) {
-
-    setActiveTravelId(travelId);
-
-    document.querySelectorAll(".travel-tab")
-      .forEach(t => t.classList.remove("active"));
-
-    tab.classList.add("active");
-
-    document.dispatchEvent(new Event("travel-selected"));
-  }
-
-  /* ADD */
-  if (e.target.closest("[data-add-travel]")) {
-
-    const newTravel = await createTravel({
-      cliente_id: appState.activeClientId,
-      destino: "Nuevo viaje"
-    });
-
-    await loadTravels();
-
-    setActiveTravelId(newTravel.id);
-    document.dispatchEvent(new Event("travel-selected"));
-  }
-
-  /* DELETE */
-  if (e.target.closest("[data-delete-travel]") && tab) {
-
-    if (!confirm("Eliminar viaje?")) return;
-
-    await deleteTravel(travelId);
-
-    if (Number(appState.activeTravelId) === travelId) {
-      setActiveTravelId(null);
-    }
-
-    await loadTravels();
-  }
-
-  /* DUPLICATE */
-  if (e.target.closest("[data-duplicate-travel]") && tab) {
-
-    const title = tab.querySelector("[data-travel-title]").value;
-
-    const newTravel = await createTravel({
-      cliente_id: appState.activeClientId,
-      destino: `${title} copia`
-    });
-
-    await loadTravels();
-
-    setActiveTravelId(newTravel.id);
-    document.dispatchEvent(new Event("travel-selected"));
-  }
-
-  /* GLOBAL DELETE */
-  if (e.target.closest("[data-delete-travel-global]")) {
-
-    if (!appState.activeTravelId) return;
-    if (!confirm("Eliminar viaje?")) return;
-
-    await deleteTravel(appState.activeTravelId);
-
-    setActiveTravelId(null);
-
-    await loadTravels();
-  }
-
-  /* GLOBAL DUPLICATE */
-  if (e.target.closest("[data-duplicate-travel-global]")) {
-
-    if (!appState.activeTravelId) return;
-
-    const current = await getTravelById(appState.activeTravelId);
-
-    const newTravel = await createTravel({
-      cliente_id: appState.activeClientId,
-      destino: `${current.destino || "Viaje"} copia`
-    });
-
-    await loadTravels();
-
-    setActiveTravelId(newTravel.id);
-    document.dispatchEvent(new Event("travel-selected"));
-  }
-
-});
-
-/************************************************
-EMPTY TAB
+EMPTY STATE
 *************************************************/
 function renderEmptyTravelTab() {
-
   const container = document.querySelector("[data-travel-tabs]");
   if (!container) return;
 
   const div = document.createElement("div");
-
   div.className = "travel-tab";
 
   div.innerHTML = `
-    <input
-      type="text"
-      class="form-control form-control-sm d-inline-block w-auto"
-      placeholder="Nuevo viaje"
-      disabled
-    >
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+      <span class="small text-muted">Este cliente todavía no tiene viajes asociados.</span>
 
-    <button class="btn btn-sm btn-outline-success" data-add-travel>
-      AGREGAR +
-    </button>
+      <button
+        type="button"
+        class="btn btn-sm btn-outline-success"
+        data-add-travel
+      >
+        Agregar viaje
+      </button>
+    </div>
   `;
 
   container.appendChild(div);
 }
+
+/************************************************
+OPEN SELECTED TRAVEL
+*************************************************/
+async function openTravelById(travelId) {
+  if (!travelId) {
+    setActiveTravelId(null);
+    setSelectedTravelName("");
+    syncTravelContextUI();
+    document.dispatchEvent(new Event("travel-cleared"));
+    return;
+  }
+
+  try {
+    const current = await getTravelById(travelId);
+
+    setActiveTravelId(Number(travelId));
+    setSelectedTravelName(current?.destino || `Viaje ${travelId}`);
+    setView("viaje");
+
+    markActiveTravelTab();
+    syncTravelContextUI();
+
+    document.dispatchEvent(new Event("travel-selected"));
+  } catch (err) {
+    console.error("Error abriendo viaje:", err);
+  }
+}
+
+/************************************************
+SYNC UI
+*************************************************/
+function syncTravelContextUI() {
+  const travelLabel = document.querySelector("[data-travel-selected-label]");
+  if (travelLabel) {
+    travelLabel.textContent = appState.selectedTravelName || "—";
+  }
+
+  const switcher = document.querySelector("[data-travel-switcher]");
+  if (switcher && appState.activeTravelId) {
+    switcher.value = String(appState.activeTravelId);
+  }
+
+  markActiveTravelTab();
+}
+
+function markActiveTravelTab() {
+  document.querySelectorAll(".travel-tab").forEach(tab => {
+    const isActive = Number(tab.dataset.travelId) === Number(appState.activeTravelId);
+    tab.classList.toggle("active", isActive);
+
+    const openBtn = tab.querySelector("[data-open-travel]");
+    if (openBtn) {
+      openBtn.classList.remove("btn-primary", "btn-outline-primary");
+      openBtn.classList.add(isActive ? "btn-primary" : "btn-outline-primary");
+    }
+  });
+}
+
+/************************************************
+CHANGE HANDLER
+*************************************************/
+document.addEventListener("change", async e => {
+  const select = e.target.closest("[data-travel-switcher]");
+  if (!select) return;
+
+  const travelId = Number(select.value);
+  if (!travelId) return;
+
+  await openTravelById(travelId);
+});
+
+/************************************************
+CLICK HANDLER
+*************************************************/
+document.addEventListener("click", async e => {
+  if (!appState.activeClientId) return;
+
+  const travelTab = e.target.closest(".travel-tab");
+  const travelId = Number(travelTab?.dataset.travelId);
+
+  /* ABRIR VIAJE DESDE TAB */
+  if (e.target.closest("[data-open-travel]") && travelTab) {
+    await openTravelById(travelId);
+    return;
+  }
+
+  /* CLICK EN TAB ENTERA */
+  if (
+    travelTab &&
+    !e.target.closest("button") &&
+    !e.target.closest("input") &&
+    !e.target.closest("select") &&
+    !e.target.closest("textarea")
+  ) {
+    await openTravelById(travelId);
+    return;
+  }
+
+  /* NUEVO VIAJE */
+  if (e.target.closest("[data-add-travel]")) {
+    try {
+      const newTravel = await createTravel({
+        cliente_id: appState.activeClientId,
+        destino: "Nuevo viaje"
+      });
+
+      setActiveTravelId(newTravel.id);
+      setSelectedTravelName(newTravel.destino || "Nuevo viaje");
+
+      await loadTravels();
+      await openTravelById(newTravel.id);
+    } catch (err) {
+      console.error("Error creando viaje:", err);
+    }
+
+    return;
+  }
+
+  /* ELIMINAR VIAJE DESDE TAB */
+  if (e.target.closest("[data-delete-travel]") && travelTab) {
+    if (!confirm("¿Eliminar viaje?")) return;
+
+    try {
+      await deleteTravel(travelId);
+
+      if (Number(appState.activeTravelId) === Number(travelId)) {
+        setActiveTravelId(null);
+        setSelectedTravelName("");
+      }
+
+      await loadTravels();
+    } catch (err) {
+      console.error("Error eliminando viaje:", err);
+    }
+
+    return;
+  }
+
+  /* DUPLICAR VIAJE DESDE TAB */
+  if (e.target.closest("[data-duplicate-travel]") && travelTab) {
+    try {
+      const current = await getTravelById(travelId);
+
+      const newTravel = await createTravel({
+        cliente_id: appState.activeClientId,
+        destino: `${current?.destino || "Viaje"} copia`
+      });
+
+      setActiveTravelId(newTravel.id);
+      setSelectedTravelName(newTravel.destino || `${current?.destino || "Viaje"} copia`);
+
+      await loadTravels();
+      await openTravelById(newTravel.id);
+    } catch (err) {
+      console.error("Error duplicando viaje:", err);
+    }
+
+    return;
+  }
+
+  /* ELIMINAR VIAJE GLOBAL */
+  if (e.target.closest("[data-delete-travel-global]")) {
+    if (!appState.activeTravelId) return;
+    if (!confirm("¿Eliminar viaje?")) return;
+
+    try {
+      await deleteTravel(appState.activeTravelId);
+      setActiveTravelId(null);
+      setSelectedTravelName("");
+
+      await loadTravels();
+    } catch (err) {
+      console.error("Error eliminando viaje global:", err);
+    }
+
+    return;
+  }
+
+  /* DUPLICAR VIAJE GLOBAL */
+  if (e.target.closest("[data-duplicate-travel-global]")) {
+    if (!appState.activeTravelId) return;
+
+    try {
+      const current = await getTravelById(appState.activeTravelId);
+
+      const newTravel = await createTravel({
+        cliente_id: appState.activeClientId,
+        destino: `${current?.destino || "Viaje"} copia`
+      });
+
+      setActiveTravelId(newTravel.id);
+      setSelectedTravelName(newTravel.destino || `${current?.destino || "Viaje"} copia`);
+
+      await loadTravels();
+      await openTravelById(newTravel.id);
+    } catch (err) {
+      console.error("Error duplicando viaje global:", err);
+    }
+  }
+});

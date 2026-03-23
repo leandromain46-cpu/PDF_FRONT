@@ -2,16 +2,50 @@ import { apiFetch } from "./api.js";
 import { appState } from "./state.js";
 
 /************************************************************
- * OBTENER COTIZACIÓN ACTIVA
+ * CONTEXTO ACTIVO
  ************************************************************/
 function getActiveCotizacionId() {
   return appState.activeQuoteId || null;
 }
 
 /************************************************************
- * GENERAR PDF (Railway + JWT seguro)
+ * INIT
  ************************************************************/
-document.addEventListener("click", async (e) => {
+document.addEventListener("DOMContentLoaded", async () => {
+  await syncPdfContext();
+});
+
+/************************************************************
+ * EVENTOS DE CONTEXTO
+ ************************************************************/
+document.addEventListener("travel-selected", async () => {
+  await syncPdfContext();
+});
+
+document.addEventListener("travel-cleared", () => {
+  resetPdfUI();
+});
+
+document.addEventListener("client-selected", () => {
+  if (!appState.activeTravelId || !appState.activeQuoteId) {
+    resetPdfUI();
+  }
+});
+
+document.addEventListener("travel-saved", async () => {
+  if (!appState.activeTravelId || !appState.activeQuoteId) return;
+  await syncPdfContext();
+});
+
+document.addEventListener("quote-tab-changed", async () => {
+  if (!appState.activeTravelId || !appState.activeQuoteId) return;
+  await syncPdfContext();
+});
+
+/************************************************************
+ * GENERAR PDF
+ ************************************************************/
+document.addEventListener("click", async e => {
   const btn = e.target.closest("[data-pdf-generate]");
   if (!btn) return;
 
@@ -33,7 +67,6 @@ document.addEventListener("click", async (e) => {
     const url = URL.createObjectURL(blob);
 
     window.open(url, "_blank");
-
   } catch (err) {
     console.error("Error generando PDF", err);
     alert("No se pudo generar el PDF.");
@@ -41,18 +74,49 @@ document.addEventListener("click", async (e) => {
 });
 
 /************************************************************
+ * SYNC CONTEXTO
+ ************************************************************/
+async function syncPdfContext() {
+  const cotizacionId = getActiveCotizacionId();
+
+  if (!cotizacionId) {
+    resetPdfUI();
+    return;
+  }
+
+  await Promise.all([
+    loadPdfSections(cotizacionId),
+    loadPdfs(cotizacionId)
+  ]);
+}
+
+/************************************************************
  * CARGAR SECCIONES PDF
  ************************************************************/
-export async function loadPdfSections() {
-  const id = getActiveCotizacionId();
-  if (!id) return;
+export async function loadPdfSections(cotizacionId = null) {
+  const id = cotizacionId || getActiveCotizacionId();
+  const container = document.querySelector("[data-pdf-sections-list]");
+
+  if (!container) return;
+
+  if (!id) {
+    renderPdfSectionsEmpty("Seleccioná una cotización para ver las secciones del PDF.");
+    return;
+  }
 
   try {
     const res = await apiFetch(`/pdf-sections/${id}`);
     const sections = await res.json();
+
+    if (!Array.isArray(sections) || !sections.length) {
+      renderPdfSectionsEmpty("No hay secciones configuradas para esta cotización.");
+      return;
+    }
+
     renderPdfSections(sections);
   } catch (err) {
     console.error("Error cargando secciones PDF", err);
+    renderPdfSectionsEmpty("No se pudieron cargar las secciones del PDF.");
   }
 }
 
@@ -61,14 +125,25 @@ export async function loadPdfSections() {
  ************************************************************/
 export async function loadPdfs(cotizacionId = null) {
   const id = cotizacionId || getActiveCotizacionId();
-  if (!id) return;
+
+  if (!id) {
+    renderPdfListEmpty("Seleccioná una cotización para ver los PDFs generados.");
+    return;
+  }
 
   try {
     const res = await apiFetch(`/pdfs/${id}`);
     const pdfs = await res.json();
+
+    if (!Array.isArray(pdfs) || !pdfs.length) {
+      renderPdfListEmpty("Todavía no hay PDFs generados para esta cotización.");
+      return;
+    }
+
     renderPdfList(pdfs);
   } catch (err) {
     console.error("Error cargando PDFs", err);
+    renderPdfListEmpty("No se pudo cargar la lista de PDFs.");
   }
 }
 
@@ -86,21 +161,30 @@ function renderPdfSections(sections) {
     div.className = "pdf-section border rounded p-2 mb-2";
 
     div.innerHTML = `
-      <strong>${section.title}</strong>
-      <textarea rows="3" class="form-control" readonly>
-${section.content}
-      </textarea>
+      <strong>${escapeHtml(section.title || "Sección")}</strong>
+      <textarea rows="3" class="form-control mt-2" readonly>${escapeHtml(section.content || "")}</textarea>
     `;
 
     container.appendChild(div);
   });
 }
 
+function renderPdfSectionsEmpty(message) {
+  const container = document.querySelector("[data-pdf-sections-list]");
+  if (!container) return;
+
+  container.innerHTML = `
+    <div class="border rounded p-3 text-muted small">
+      ${escapeHtml(message)}
+    </div>
+  `;
+}
+
 /************************************************************
  * RENDER LISTA PDF
  ************************************************************/
 function renderPdfList(pdfs) {
-  const container = document.querySelector("[data-pdf-list]");
+  const container = getPdfListContainer();
   if (!container) return;
 
   container.innerHTML = "";
@@ -108,16 +192,17 @@ function renderPdfList(pdfs) {
   pdfs.forEach(pdf => {
     const div = document.createElement("div");
     div.className =
-      "pdf-item border rounded p-3 mb-2 d-flex justify-content-between align-items-center";
+      "pdf-item border rounded p-3 mb-2 d-flex justify-content-between align-items-center flex-wrap gap-3";
 
     div.innerHTML = `
       <div>
-        <strong>${pdf.nombre || pdf.name}</strong>
+        <strong>${escapeHtml(pdf.nombre || pdf.name || "Documento PDF")}</strong>
         <div class="small text-muted">
-          ${new Date(pdf.created_at || pdf.createdAt).toLocaleString()}
+          ${escapeHtml(formatDateTime(pdf.created_at || pdf.createdAt))}
         </div>
       </div>
-      <div class="d-flex gap-2">
+
+      <div class="d-flex gap-2 flex-wrap">
         <button class="btn btn-sm btn-outline-secondary" data-pdf-view>
           Ver
         </button>
@@ -129,10 +214,7 @@ function renderPdfList(pdfs) {
 
     container.appendChild(div);
 
-    /* =========================
-       VER PDF (seguro con JWT)
-    ========================== */
-    div.querySelector("[data-pdf-view]").addEventListener("click", async () => {
+    div.querySelector("[data-pdf-view]")?.addEventListener("click", async () => {
       try {
         const res = await apiFetch(`/pdfs/latest/${pdf.cotizacion_id}`);
         const blob = await res.blob();
@@ -144,10 +226,7 @@ function renderPdfList(pdfs) {
       }
     });
 
-    /* =========================
-       DESCARGAR PDF
-    ========================== */
-    div.querySelector("[data-pdf-download]").addEventListener("click", async () => {
+    div.querySelector("[data-pdf-download]")?.addEventListener("click", async () => {
       try {
         const res = await apiFetch(`/pdfs/latest/${pdf.cotizacion_id}`);
         const blob = await res.blob();
@@ -162,4 +241,63 @@ function renderPdfList(pdfs) {
       }
     });
   });
+}
+
+function renderPdfListEmpty(message) {
+  const container = getPdfListContainer();
+  if (!container) return;
+
+  container.innerHTML = `
+    <div class="border rounded p-3 text-muted small">
+      ${escapeHtml(message)}
+    </div>
+  `;
+}
+
+/************************************************************
+ * CONTENEDOR DINÁMICO PDF LIST
+ ************************************************************/
+function getPdfListContainer() {
+  let container = document.querySelector("[data-pdf-runtime-list]");
+  if (container) return container;
+
+  const managementSection = document.querySelector("[data-pdf-management]");
+  if (!managementSection) return null;
+
+  container = document.createElement("div");
+  container.className = "mt-3";
+  container.setAttribute("data-pdf-runtime-list", "");
+
+  managementSection.appendChild(container);
+  return container;
+}
+
+/************************************************************
+ * RESET UI
+ ************************************************************/
+function resetPdfUI() {
+  renderPdfSectionsEmpty("Seleccioná una cotización para ver las secciones del PDF.");
+  renderPdfListEmpty("Seleccioná una cotización para ver los PDFs generados.");
+}
+
+/************************************************************
+ * HELPERS
+ ************************************************************/
+function formatDateTime(value) {
+  if (!value) return "-";
+
+  try {
+    return new Date(value).toLocaleString();
+  } catch {
+    return String(value);
+  }
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 }

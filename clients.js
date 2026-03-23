@@ -1,5 +1,13 @@
 import { qs, val } from "./dom.js";
-import { appState, setActiveClientId } from "./state.js";
+import {
+  appState,
+  setActiveClientId,
+  setClientTab,
+  setSelectedClientName,
+  setSelectedTravelName,
+  setView
+} from "./state.js";
+
 import {
   getClientes,
   getCliente,
@@ -7,7 +15,7 @@ import {
   deleteCliente,
   createClientDocument,
   getClientDocuments,
-  deleteClientDocument,
+  deleteClientDocument
 } from "./api.js";
 
 /********************************
@@ -15,24 +23,37 @@ INIT
 *********************************/
 document.addEventListener("DOMContentLoaded", async () => {
   await loadClients();
+  syncClientContextUI();
 });
 
 /********************************
 LOAD CLIENTES
 *********************************/
 export async function loadClients() {
-  const clients = await getClientes();
+  let clients = [];
 
-  const select = qs("[data-client-select]");
-  if (!select) return;
+  try {
+    clients = await getClientes();
+  } catch (err) {
+    console.error("Error cargando clientes:", err);
+  }
 
-  select.innerHTML = `<option value="">Seleccionar cliente</option>`;
+  const selects = document.querySelectorAll("[data-client-select]");
+  if (!selects.length) return;
 
-  clients.forEach(c => {
-    const opt = document.createElement("option");
-    opt.value = c.id;
-    opt.textContent = c.nombre;
-    select.appendChild(opt);
+  selects.forEach(select => {
+    select.innerHTML = `<option value="">Seleccionar cliente</option>`;
+
+    clients.forEach(c => {
+      const opt = document.createElement("option");
+      opt.value = c.id;
+      opt.textContent = c.nombre;
+      select.appendChild(opt);
+    });
+
+    if (appState.activeClientId) {
+      select.value = String(appState.activeClientId);
+    }
   });
 }
 
@@ -44,21 +65,42 @@ document.addEventListener("change", async e => {
   if (!select) return;
 
   const id = Number(select.value);
-  setActiveClientId(id);
 
   if (!id) {
+    setActiveClientId(null);
+    setSelectedClientName("");
+    setSelectedTravelName("");
     clearClientForm();
+    clearDocForm();
+    clearDocumentsList();
+    syncClientSelects();
+    syncClientContextUI();
+
+    document.dispatchEvent(new Event("travel-cleared"));
     document.dispatchEvent(new Event("client-selected"));
     return;
   }
 
-  const client = await getCliente(id);
+  try {
+    const client = await getCliente(id);
 
-  fillClientForm(client);
-  loadClientDocuments(id);
+    setActiveClientId(id);
+    setSelectedClientName(client?.nombre || "");
+    setSelectedTravelName("");
+    setView("cliente");
+    setClientTab("ficha");
 
-  document.dispatchEvent(new Event("travel-cleared"));
-  document.dispatchEvent(new Event("client-selected"));
+    fillClientForm(client);
+    await loadClientDocuments(id);
+
+    syncClientSelects();
+    syncClientContextUI();
+
+    document.dispatchEvent(new Event("travel-cleared"));
+    document.dispatchEvent(new Event("client-selected"));
+  } catch (err) {
+    console.error("Error seleccionando cliente:", err);
+  }
 });
 
 /********************************
@@ -68,7 +110,37 @@ document.addEventListener("click", async e => {
   /* NUEVO CLIENTE */
   if (e.target.closest("[data-client-new]")) {
     setActiveClientId(null);
+    setSelectedClientName("");
+    setSelectedTravelName("");
+    setView("clientes");
+    setClientTab("ficha");
+
     clearClientForm();
+    clearDocForm();
+    clearDocumentsList();
+
+    syncClientSelects();
+    syncClientContextUI();
+
+    document.dispatchEvent(new Event("travel-cleared"));
+    return;
+  }
+
+  /* TABS CLIENTE */
+  const clientTabBtn = e.target.closest("[data-client-tab]");
+  if (clientTabBtn) {
+    const tab = clientTabBtn.dataset.clientTab;
+    setClientTab(tab);
+
+    if (appState.activeClientId) {
+      setView("cliente");
+    }
+
+    syncClientTabs();
+    syncClientPanels();
+    syncClientContextUI();
+
+    return;
   }
 
   /* GUARDAR CLIENTE */
@@ -83,60 +155,132 @@ document.addEventListener("click", async e => {
       created_at: val("created")
     };
 
-    const saved = await createCliente(payload);
-    const clientId = saved.id || appState.activeClientId;
+    try {
+      const saved = await createCliente(payload);
+      const clientId = saved.id || appState.activeClientId;
 
-    setActiveClientId(clientId);
+      setActiveClientId(clientId);
 
-    await loadClients();
-    qs("[data-client-select]").value = clientId;
+      await loadClients();
+      syncClientSelects();
 
-    const full = await getCliente(clientId);
-    fillClientForm(full);
+      const full = await getCliente(clientId);
+
+      setSelectedClientName(full?.nombre || "");
+      setView("cliente");
+      setClientTab("ficha");
+
+      fillClientForm(full);
+      await loadClientDocuments(clientId);
+
+      syncClientContextUI();
+
+      document.dispatchEvent(new Event("client-selected"));
+    } catch (err) {
+      console.error("Error guardando cliente:", err);
+    }
+
+    return;
   }
 
   /* ELIMINAR CLIENTE */
   if (e.target.closest("[data-client-delete]")) {
     if (!appState.activeClientId) return;
-    if (!confirm("Eliminar cliente?")) return;
+    if (!confirm("¿Eliminar cliente?")) return;
 
-    await deleteCliente(appState.activeClientId);
+    try {
+      await deleteCliente(appState.activeClientId);
 
-    setActiveClientId(null);
-    clearClientForm();
-    loadClients();
+      setActiveClientId(null);
+      setSelectedClientName("");
+      setSelectedTravelName("");
+      setView("clientes");
+      setClientTab("ficha");
+
+      clearClientForm();
+      clearDocForm();
+      clearDocumentsList();
+
+      await loadClients();
+      syncClientSelects();
+      syncClientContextUI();
+
+      document.dispatchEvent(new Event("travel-cleared"));
+      document.dispatchEvent(new Event("client-selected"));
+    } catch (err) {
+      console.error("Error eliminando cliente:", err);
+    }
+
+    return;
   }
 
   /* GUARDAR DOCUMENTO */
   if (e.target.closest("[data-doc-save]")) {
-    if (!appState.activeClientId) return alert("Seleccioná cliente");
-
-    const formData = new FormData();
-    formData.append("client_id", appState.activeClientId);
-    formData.append("type", qs('[data-doc="type"]').value);
-    formData.append("number", qs('[data-doc="number"]').value);
-    formData.append("expiry", qs('[data-doc="expiry"]').value);
-    formData.append("notes", qs('[data-doc="notes"]').value);
-
-    const fileInput = qs('[data-doc="files"]');
-    if (fileInput.files[0]) {
-      formData.append("file", fileInput.files[0]);
+    if (!appState.activeClientId) {
+      alert("Seleccioná un cliente");
+      return;
     }
 
-    await createClientDocument(formData);
+    try {
+      const formData = new FormData();
+      formData.append("client_id", appState.activeClientId);
+      formData.append("type", qs('[data-doc="type"]')?.value || "");
+      formData.append("number", qs('[data-doc="number"]')?.value || "");
+      formData.append("expiry", qs('[data-doc="expiry"]')?.value || "");
+      formData.append("notes", qs('[data-doc="notes"]')?.value || "");
 
-    loadClientDocuments(appState.activeClientId);
-    clearDocForm();
+      const fileInput = qs('[data-doc="files"]');
+      if (fileInput?.files?.[0]) {
+        formData.append("file", fileInput.files[0]);
+      }
+
+      await createClientDocument(formData);
+
+      await loadClientDocuments(appState.activeClientId);
+      clearDocForm();
+
+      if (appState.activeClientId) {
+        setView("cliente");
+        setClientTab("documentacion");
+        syncClientContextUI();
+      }
+    } catch (err) {
+      console.error("Error guardando documento:", err);
+    }
+
+    return;
   }
 
   /* ELIMINAR DOCUMENTO */
   const deleteBtn = e.target.closest("[data-doc-delete]");
   if (deleteBtn) {
-    if (!confirm("Eliminar documento?")) return;
+    if (!confirm("¿Eliminar documento?")) return;
 
-    await deleteClientDocument(deleteBtn.dataset.docDelete);
+    try {
+      await deleteClientDocument(deleteBtn.dataset.docDelete);
+      await loadClientDocuments(appState.activeClientId);
+    } catch (err) {
+      console.error("Error eliminando documento:", err);
+    }
 
-    loadClientDocuments(appState.activeClientId);
+    return;
+  }
+
+  /* CANCELAR FICHA */
+  if (e.target.closest("[data-client-doc-cancel]")) {
+    if (!appState.activeClientId) {
+      clearClientForm();
+      return;
+    }
+
+    try {
+      const client = await getCliente(appState.activeClientId);
+      fillClientForm(client);
+    } catch (err) {
+      console.error("Error recargando ficha cliente:", err);
+    }
+
+    return;
   }
 });
 
@@ -144,20 +288,46 @@ document.addEventListener("click", async e => {
 DOCUMENTOS
 *********************************/
 async function loadClientDocuments(clientId) {
-  const docs = await getClientDocuments(clientId);
-
   const list = qs("[data-doc-list]");
   if (!list) return;
 
   list.innerHTML = "";
 
+  if (!clientId) return;
+
+  let docs = [];
+
+  try {
+    docs = await getClientDocuments(clientId);
+  } catch (err) {
+    console.error("Error cargando documentos:", err);
+  }
+
+  if (!docs.length) {
+    list.innerHTML = `
+      <div class="small text-muted">
+        No hay documentos cargados para este cliente.
+      </div>
+    `;
+    return;
+  }
+
   docs.forEach(d => {
     const div = document.createElement("div");
+    div.className = "border rounded p-2 mb-2";
 
     div.innerHTML = `
-      <div class="border p-2 mb-2">
-        <strong>${d.type}</strong> - ${d.number}
-        <button data-doc-delete="${d.id}">Eliminar</button>
+      <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap">
+        <div>
+          <strong>${escapeHtml(d.type || "Documento")}</strong>
+          <div class="small text-muted">${escapeHtml(d.number || "Sin número")}</div>
+          ${d.expiry ? `<div class="small text-muted">Vence: ${escapeHtml(d.expiry)}</div>` : ""}
+          ${d.notes ? `<div class="small mt-1">${escapeHtml(d.notes)}</div>` : ""}
+        </div>
+
+        <button class="btn btn-sm btn-outline-danger" data-doc-delete="${d.id}">
+          Eliminar
+        </button>
       </div>
     `;
 
@@ -165,10 +335,87 @@ async function loadClientDocuments(clientId) {
   });
 }
 
+function clearDocumentsList() {
+  const list = qs("[data-doc-list]");
+  if (list) list.innerHTML = "";
+}
+
+/********************************
+SYNC UI
+*********************************/
+function syncClientContextUI() {
+  syncViewVisibility();
+  syncClientTabs();
+  syncClientPanels();
+  syncClientLabels();
+  syncClientSelects();
+}
+
+function syncViewVisibility() {
+  const views = document.querySelectorAll("[data-view]");
+  views.forEach(el => el.classList.add("d-none"));
+
+  if (appState.view === "clientes") {
+    document.querySelector('[data-view="clientes"]')?.classList.remove("d-none");
+    return;
+  }
+
+  if (appState.view === "cliente") {
+    document.querySelector('[data-view="cliente"]')?.classList.remove("d-none");
+    return;
+  }
+
+  if (appState.view === "viaje") {
+    document.querySelector('[data-view="cliente"]')?.classList.remove("d-none");
+    document.querySelector('[data-view="viaje"]')?.classList.remove("d-none");
+    return;
+  }
+}
+
+function syncClientTabs() {
+  document.querySelectorAll("[data-client-tab]").forEach(btn => {
+    const isActive = btn.dataset.clientTab === appState.clientTab;
+    btn.classList.toggle("active", isActive);
+
+    btn.classList.remove("btn-secondary");
+    btn.classList.add("btn-outline-secondary");
+  });
+
+  const activeBtn = document.querySelector(`[data-client-tab="${appState.clientTab}"]`);
+  if (activeBtn) {
+    activeBtn.classList.remove("btn-outline-secondary");
+    activeBtn.classList.add("btn-secondary");
+  }
+}
+
+function syncClientPanels() {
+  document.querySelectorAll("[data-client-panel]").forEach(panel => {
+    panel.classList.add("d-none");
+  });
+
+  const activePanel = document.querySelector(`[data-client-panel="${appState.clientTab}"]`);
+  if (activePanel) {
+    activePanel.classList.remove("d-none");
+  }
+}
+
+function syncClientLabels() {
+  const label = document.querySelector("[data-client-selected-label]");
+  if (label) {
+    label.textContent = appState.selectedClientName || "—";
+  }
+}
+
+function syncClientSelects() {
+  document.querySelectorAll("[data-client-select]").forEach(select => {
+    select.value = appState.activeClientId ? String(appState.activeClientId) : "";
+  });
+}
+
 /********************************
 FORM HELPERS
 *********************************/
-function fillClientForm(c) {
+function fillClientForm(c = {}) {
   set("id", c.id);
   set("name", c.nombre);
   set("phone", c.telefono);
@@ -177,12 +424,13 @@ function fillClientForm(c) {
   set("status", c.status);
   set("location", c.location);
   set("created", c.created_at);
+  set("tags", c.tags);
 }
 
 function clearClientForm() {
-  ["id", "name", "phone", "email", "notes", "status", "location", "created"].forEach(k =>
-    set(k, "")
-  );
+  ["id", "name", "phone", "email", "notes", "status", "location", "created", "tags"].forEach(k => {
+    set(k, "");
+  });
 }
 
 function clearDocForm() {
@@ -190,9 +438,26 @@ function clearDocForm() {
     const el = qs(`[data-doc="${k}"]`);
     if (el) el.value = "";
   });
+
+  const fileInput = qs('[data-doc="files"]');
+  if (fileInput) fileInput.value = "";
 }
 
 function set(key, value) {
-  const el = document.querySelector(`[data-client="${key}"]`);
-  if (el) el.value = value || "";
+  const fields = document.querySelectorAll(`[data-client="${key}"]`);
+  fields.forEach(el => {
+    el.value = value || "";
+  });
+}
+
+/********************************
+UTILS
+*********************************/
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 }
