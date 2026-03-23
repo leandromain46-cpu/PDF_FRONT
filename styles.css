@@ -1,0 +1,204 @@
+/* =========================
+   BASE GLOBAL
+========================= */
+body {
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  background: linear-gradient(180deg, #f4f6f8 0%, #eef1f4 100%);
+  color: #1f2937;
+}
+
+/* =========================
+   CONTAINER
+========================= */
+.container {
+  max-width: 980px;
+}
+.quote-selected {
+  border: 2px solid #007bff !important;
+  background: #eef5ff;
+}
+
+/* =========================
+   CARD (BOOSTRAP OVERRIDE)
+========================= */
+.card {
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+}
+
+/* =========================
+   SECTION HEADERS
+========================= */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.section-header h2,
+.section-header h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+/* =========================
+   SECTION BODY
+========================= */
+.section-body {
+  margin-top: 1rem;
+}
+
+/* =========================
+   SERVICE CARD
+========================= */
+.service-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 1rem;
+  margin-top: 1rem;
+  background: #ffffff;
+}
+
+.service-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+/* =========================
+   CATEGORY
+========================= */
+.category {
+  border: 1px dashed #cbd5e1;
+  border-radius: 10px;
+  padding: 0.75rem;
+  margin-top: 1rem;
+  background: #f9fafb;
+}
+
+.category-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 500;
+}
+
+.category-body {
+  margin-top: 0.75rem;
+}
+
+/* =========================
+   TOGGLES / ACTIONS
+========================= */
+.toggle {
+  cursor: pointer;
+  user-select: none;
+  color: #2563eb;
+}
+
+.toggle:hover {
+  text-decoration: underline;
+}
+
+/* =========================
+   UTILS
+========================= */
+.hidden {
+  display: none;
+}
+
+.small {
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+/* =========================
+   TOTALS
+========================= */
+.totals {
+  margin-top: 1.5rem;
+  border-top: 1px solid #e5e7eb;
+  padding-top: 1rem;
+}
+
+.total-line {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.4rem;
+  color: #374151;
+}
+
+.total-final {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+/* =========================
+   CLIENTE
+========================= */
+.client-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 1rem;
+  background: #ffffff;
+}
+
+/* =========================
+   CLIENT NAV
+========================= */
+.client-nav {
+  display: flex;
+  gap: 8px;
+}
+
+.client-nav .btn.active {
+  background-color: #2563eb;
+  color: #fff;
+  border-color: #2563eb;
+}
+
+/* =========================
+   CLIENT SECTIONS
+========================= */
+.client-section {
+  border: 1px dashed #e5e7eb;
+  border-radius: 10px;
+  padding: 1rem;
+  background: #f9fafb;
+}
+
+/* =========================
+   TRAVEL NAV
+========================= */
+.travel-nav {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.travel-nav .btn.active {
+  background-color: #2563eb;
+  color: #fff;
+  border-color: #2563eb;
+}
+
+/* =========================
+   DATOS DEL PRESUPUESTO
+========================= */
+.budget-block {
+  padding: 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #f9fafb;
+}
