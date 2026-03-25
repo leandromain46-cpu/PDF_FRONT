@@ -19,6 +19,9 @@ import "./clients.js";
 import "./services.js";
 import "./pdf.js";
 import "./quotes.js";
+import "./itinerary.js";
+import "./vouchers.js";
+import "./operators.js";
 
 /* ================================
 INIT
