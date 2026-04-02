@@ -429,7 +429,7 @@ function fillClientForm(c = {}) {
   set("notes", c.notas);
   set("status", c.status);
   set("location", c.location);
-  set("created", c.created_at);
+  set("created", formatDateInput(c.created_at));
   set("tags", c.tags);
 }
 
@@ -499,6 +499,19 @@ function formatDate(value) {
   if (raw.includes("T")) return raw.split("T")[0];
   if (raw.includes(" ")) return raw.split(" ")[0];
   return raw;
+}
+function formatDateInput(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toISOString().slice(0, 10);
+}
+
+function formatDateEs(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleDateString("es-AR");
 }
 
 function escapeHtml(value) {
