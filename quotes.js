@@ -46,10 +46,19 @@ function escapeHtml(value) {
 
 function formatDateForInput(value) {
   if (!value) return "";
-  const raw = String(value);
-  if (raw.includes("T")) return raw.split("T")[0];
-  if (raw.includes(" ")) return raw.split(" ")[0];
-  return raw;
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+
+  return date.toISOString().slice(0, 10); // para input
+}
+function formatDateEs(value) {
+  if (!value) return "";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+
+  return date.toLocaleDateString("es-AR");
 }
 
 function formatMoney(value) {
@@ -100,7 +109,7 @@ async function renderTravelHeader() {
             Cliente: ${escapeHtml(viaje?.cliente_nombre || "-")}
           </div>
           <div class="small text-muted">
-            Fecha inicio: ${escapeHtml(formatDateForInput(viaje?.fecha_inicio) || "-")}
+            Fecha inicio: ${escapeHtml(formatDateEs(viaje?.fecha_inicio) || "-")}
           </div>
         </div>
       `;
@@ -179,7 +188,7 @@ export async function loadQuotes() {
               </div>
 
               <div class="small text-muted">
-                Fecha: ${escapeHtml(formatDateForInput(qt.fecha_creacion) || "-")}
+                Fecha: ${escapeHtml(formatDateEs(qt.fecha_creacion) || "-")}
               </div>
 
               <div class="small text-muted">
