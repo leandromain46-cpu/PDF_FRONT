@@ -429,7 +429,7 @@ function fillClientForm(c = {}) {
   set("notes", c.notas);
   set("status", c.status);
   set("location", c.location);
-  set("created", formatDateInput(c.created_at));
+  set("created", formatDateEs(c.created_at));
   set("tags", c.tags);
 }
 
