@@ -1,7 +1,7 @@
 /* ================================
 BOOTSTRAP APP FRONTEND
 ================================ */
-
+import { API_BASE } from "./config.js";
 import {
   setAuthToken,
   showApp,
