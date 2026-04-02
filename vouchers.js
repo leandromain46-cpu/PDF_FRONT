@@ -273,7 +273,7 @@ function hydrateVoucherCard(card, data = {}) {
   setVoucherField(card, "tipo", data.tipo || "");
   setVoucherField(card, "servicio", data.servicio || "");
   setVoucherField(card, "proveedor", data.proveedor || "");
-  setVoucherField(card, "fecha_asociada", formatDateForInput(data.fecha_asociada));
+  setVoucherField(card, "fecha_asociada", formatDateInput(data.fecha_asociada));
   setVoucherField(card, "notes", data.notes || "");
 
   const visibleEl = card.querySelector('[data-voucher="visible_cliente"]');
@@ -377,12 +377,18 @@ async function safeJson(res) {
   return res.json();
 }
 
-function formatDateForInput(value) {
+function formatDateInput(value) {
   if (!value) return "";
-  const raw = String(value);
-  if (raw.includes("T")) return raw.split("T")[0];
-  if (raw.includes(" ")) return raw.split(" ")[0];
-  return raw;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toISOString().slice(0, 10);
+}
+
+function formatDateEs(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleDateString("es-AR");
 }
 
 function buildApiUrl(path) {

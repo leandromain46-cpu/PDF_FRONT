@@ -109,7 +109,7 @@ FORM HELPERS
 function hydrateItineraryForm(data = {}) {
   setItineraryRecordId(data.id || "");
   setItineraryField("version", data.version || "");
-  setItineraryField("issueDate", formatDateForInput(data.issue_date));
+  setItineraryField("issueDate", formatDateInput(data.issue_date));
   setItineraryField("notes", data.notes || "");
 
   const auto = document.querySelector('[data-itinerary="auto"]');
@@ -181,7 +181,7 @@ function renderItineraryPreview(data = {}) {
           </div>
 
           <div class="small mb-1">
-            <strong>Fecha de emisión:</strong> ${escapeHtml(formatDateForInput(data.issue_date) || "-")}
+            <strong>Fecha de emisión:</strong> ${escapeHtml(formatDateEs(data.issue_date) || "-")}
           </div>
 
           <div class="small mb-1">
@@ -295,12 +295,18 @@ async function safeJson(res) {
   return res.json();
 }
 
-function formatDateForInput(value) {
+function formatDateInput(value) {
   if (!value) return "";
-  const raw = String(value);
-  if (raw.includes("T")) return raw.split("T")[0];
-  if (raw.includes(" ")) return raw.split(" ")[0];
-  return raw;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toISOString().slice(0, 10); // para input
+}
+
+function formatDateEs(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleDateString("es-AR");
 }
 
 function escapeHtml(value) {
